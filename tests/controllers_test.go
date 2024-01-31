@@ -118,18 +118,19 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestPeopleGet(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+func setupRouterGet() *gin.Engine {
 	r := gin.Default()
 	r.GET("/get", controllers.PeopleGet)
+	return r
+}
 
-	// check name and surname as params
-	req, _ := http.NewRequest("GET", "/get?name=Ivan&surname=Ivanov&page=1&pageSize=10", nil)
+func testHTTPRequest(t *testing.T, r *gin.Engine, method, path string, expectedStatus int, expectedLength int) []models.Person {
+	req, _ := http.NewRequest(method, path, nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code, "Expected status code to be 200 OK")
+	assert.Equal(t, expectedStatus, w.Code, fmt.Sprintf("Expected status code to be %d", expectedStatus))
 
 	var response map[string][]models.Person
 	err := json.Unmarshal(w.Body.Bytes(), &response)
@@ -137,46 +138,25 @@ func TestPeopleGet(t *testing.T) {
 
 	people, exists := response["people"]
 	assert.True(t, exists)
-	assert.NotEmpty(t, people)
-	assert.Len(t, people, 1)
+	assert.Len(t, people, expectedLength)
+
+	return people
+}
+
+func TestPeopleGet(t *testing.T) {
+	r := setupRouterGet()
+
+	// check name and surname as params
+	testHTTPRequest(t, r, "GET", "/get?name=Ivan&surname=Ivanov&page=1&pageSize=10", http.StatusOK, 1)
+
 	// check get without params
-	req, _ = http.NewRequest("GET", "/get", nil)
-	w = httptest.NewRecorder()
-
-	r.ServeHTTP(w, req)
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	assert.Nil(t, err, "Should unmarshal response without error")
-
-	people, exists = response["people"]
-	assert.Equal(t, http.StatusOK, w.Code, "Expected status code to be 200 OK")
-	assert.Len(t, people, 5)
+	testHTTPRequest(t, r, "GET", "/get", http.StatusOK, 5)
 
 	// check with name param
-	req, _ = http.NewRequest("GET", "/get?name=Ivan", nil)
-	w = httptest.NewRecorder()
-
-	r.ServeHTTP(w, req)
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	assert.Nil(t, err, "Should unmarshal response without error")
-
-	people, exists = response["people"]
-	assert.Equal(t, http.StatusOK, w.Code, "Expected status code to be 200 OK")
-	assert.Len(t, people, 2)
+	testHTTPRequest(t, r, "GET", "/get?name=Ivan", http.StatusOK, 2)
 
 	// check pagination
-	req, _ = http.NewRequest("GET", "/get?page=2&pageSize=3", nil)
-	w = httptest.NewRecorder()
-
-	r.ServeHTTP(w, req)
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	assert.Nil(t, err, "Should unmarshal response without error")
-
-	people, exists = response["people"]
-	assert.Equal(t, http.StatusOK, w.Code, "Expected status code to be 200 OK")
-	assert.Len(t, people, 2)
+	testHTTPRequest(t, r, "GET", "/get?page=2&pageSize=3", http.StatusOK, 2)
 }
 
 func TestPersonCreate(t *testing.T) {
