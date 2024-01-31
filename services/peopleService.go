@@ -20,6 +20,7 @@ func NewPersonService() *PersonService {
 	return &PersonService{}
 }
 
+// Finds person by id
 func (s *PersonService) FindPerson(id string) (*models.Person, error) {
 	initializers.Log.Infof("Finding person with ID: %s", id)
 	var person models.Person

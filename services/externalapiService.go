@@ -35,7 +35,7 @@ type NationalizeResponse struct {
 // Add information to the object from external API
 func CompleteObject(person *Body) error {
 	initializers.Log.Infof("Starting to complete object for: %s", person.Name)
-	// Получение возраста
+	// Get age
 	agifyResp, err := http.Get(fmt.Sprintf("https://api.agify.io/?name=%s", person.Name))
 	if err != nil {
 		initializers.Log.WithError(err).Error("Failed to request age from Agify")
@@ -48,7 +48,7 @@ func CompleteObject(person *Body) error {
 	person.Age = agifyData.Age
 	initializers.Log.Debugf("Received age from Agify: %d", person.Age)
 
-	// Получение пола
+	// Get gender
 	genderizeResp, err := http.Get(fmt.Sprintf("https://api.genderize.io/?name=%s", person.Name))
 	if err != nil {
 		initializers.Log.WithError(err).Error("Failed to request gender from Genderize")
@@ -61,7 +61,7 @@ func CompleteObject(person *Body) error {
 	person.Gender = genderizeData.Gender
 	initializers.Log.Debugf("Received gender from Genderize: %s", person.Gender)
 
-	// Получение национальности
+	// Get nationality
 	nationalizeResp, err := http.Get(fmt.Sprintf("https://api.nationalize.io/?name=%s", person.Name))
 	if err != nil {
 		initializers.Log.WithError(err).Error("Failed to request nationality from Nationalize")

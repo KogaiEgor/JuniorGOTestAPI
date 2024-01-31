@@ -16,13 +16,19 @@ func PeopleCreate(c *gin.Context) {
 
 	var body services.Body
 
-	c.Bind(&body)
+	if err := c.Bind(&body); err != nil {
+		initializers.Log.WithError(err).Error("Error binding request body for update")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Wrong data format"})
+		return
+	}
 
 	if body.Name == "" || body.Surname == "" {
+		initializers.Log.Errorln("Name and surname are requierd, instance wasn't created")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name and Surname are required"})
 		return
 	}
 
+	// Complete data with gender, age and nationality
 	initializers.Log.Debug("Calling CompleteObject with: ", body)
 	err := services.CompleteObject(&body)
 	if err != nil {
@@ -31,6 +37,7 @@ func PeopleCreate(c *gin.Context) {
 		return
 	}
 
+	// Create person
 	person, er := personService.CreatePerson(body.Name, body.Surname, body.Patronymic, body.Gender, body.Nationality, body.Age)
 
 	if er != nil {
@@ -50,7 +57,7 @@ func PeopleDelete(c *gin.Context) {
 	id := c.Param("id")
 	initializers.Log.Info("Request to delete person with ID: ", id)
 
-	// Delete todo using the service
+	// Delete person using the service
 	if err := personService.DeletePerson(id); err != nil {
 		initializers.Log.WithError(err).Error("Error deleting person with ID: ", id)
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -85,6 +92,7 @@ func PeopleUpdate(c *gin.Context) {
 		return
 	}
 
+	// Update data with new params
 	if body.Name != person.Name {
 		initializers.Log.Debug("Calling CompleteObject with: ", body)
 		err = services.CompleteObject(&body)
@@ -117,6 +125,7 @@ func PeopleGet(c *gin.Context) {
 	pageSize := c.DefaultQuery("pageSize", "10")
 	initializers.Log.Infof("Fetching people with filters - Name: %s, Surname: %s, Page: %s, PageSize: %s", name, surname, page, pageSize)
 
+	// Get people
 	people, err := personService.GetPeople(name, surname, page, pageSize)
 
 	if err != nil {
