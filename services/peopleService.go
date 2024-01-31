@@ -60,7 +60,7 @@ func (s *PersonService) CreatePerson(name, surname, patronymic, gender, national
 }
 
 // Updates instance in db
-func (s *PersonService) UpdatePerson(m *models.Person, name, surname, patronymic string) error {
+func (s *PersonService) UpdatePerson(m *models.Person, name, surname, patronymic, gender, nationality string, age int) error {
 	initializers.Log.Infof("Updating person %s", name)
 	var patronymicPtr *string
 	if patronymic != "" {
@@ -68,9 +68,12 @@ func (s *PersonService) UpdatePerson(m *models.Person, name, surname, patronymic
 	}
 
 	updateFields := &models.Person{
-		Name:       name,
-		Surname:    surname,
-		Patronymic: patronymicPtr,
+		Name:        name,
+		Surname:     surname,
+		Patronymic:  patronymicPtr,
+		Age:         age,
+		Gender:      gender,
+		Nationality: nationality,
 	}
 
 	if err := initializers.DB.Model(m).Updates(updateFields).Error; err != nil {
@@ -84,8 +87,10 @@ func (s *PersonService) UpdatePerson(m *models.Person, name, surname, patronymic
 
 // delete instance of given id
 func (s *PersonService) DeletePerson(id string) error {
-	initializers.Log.Infof("Deleting person with ID: %s", id)
-	result := initializers.DB.Delete(&models.Person{}, id)
+	i, _ := strconv.Atoi(id)
+
+	initializers.Log.Infof("Deleting person with ID: %d", i)
+	result := initializers.DB.Delete(&models.Person{}, i)
 
 	if result.RowsAffected == 0 {
 		err := fmt.Errorf("There is no person with id %s", id)

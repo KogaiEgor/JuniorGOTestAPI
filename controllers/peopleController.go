@@ -8,12 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type body struct {
-	Name       string `json:"name"`
-	Surname    string `json:"surname"`
-	Patronymic string `json:"patronymic"`
-}
-
 var personService = services.NewPersonService()
 
 // Endpoint for creating a new object
@@ -23,6 +17,11 @@ func PeopleCreate(c *gin.Context) {
 	var body services.Body
 
 	c.Bind(&body)
+
+	if body.Name == "" || body.Surname == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name and Surname are required"})
+		return
+	}
 
 	initializers.Log.Debug("Calling CompleteObject with: ", body)
 	err := services.CompleteObject(&body)
@@ -68,7 +67,7 @@ func PeopleUpdate(c *gin.Context) {
 	id := c.Param("id")
 	initializers.Log.Info("Request to update person with ID: ", id)
 
-	//Get todo
+	//Get person
 	person, err := personService.FindPerson(id)
 
 	if err != nil {
@@ -78,7 +77,7 @@ func PeopleUpdate(c *gin.Context) {
 	}
 
 	//Get data
-	var body body
+	var body services.Body
 
 	if err := c.Bind(&body); err != nil {
 		initializers.Log.WithError(err).Error("Error binding request body for update")
@@ -86,14 +85,24 @@ func PeopleUpdate(c *gin.Context) {
 		return
 	}
 
-	//Update todo
-	if err := personService.UpdatePerson(person, body.Name, body.Surname, body.Patronymic); err != nil {
+	if body.Name != person.Name {
+		initializers.Log.Debug("Calling CompleteObject with: ", body)
+		err = services.CompleteObject(&body)
+		if err != nil {
+			initializers.Log.WithError(err).Error("Error completing object")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "External API error"})
+			return
+		}
+	}
+
+	//Update person
+	if err := personService.UpdatePerson(person, body.Name, body.Surname, body.Patronymic, body.Gender, body.Nationality, body.Age); err != nil {
 		initializers.Log.WithError(err).Error("Error updating person with ID: ", id)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	//Respond with updated todo
+	//Respond with updated person
 	initializers.Log.Info("Person updated successfully with ID: ", id)
 	c.JSON(http.StatusOK, gin.H{
 		"person": person,
